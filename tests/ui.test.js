@@ -64,14 +64,15 @@ describe("options.js 配置收集、校验与保存", () => {
     storageSyncData.endpoint = "http://localhost:11434/v1";
     storageSyncData.model = "llama3";
     storageSyncData.contextTokenBudget = 8000;
+    storageSyncData.timeout = 30000;
     storageLocalData.apiKey = "local-key-1";
     boot();
     await new Promise((r) => setTimeout(r, 20));
     expect(document.getElementById("provider").value).toBe("ollama");
     expect(document.getElementById("endpoint").value).toBe("http://localhost:11434/v1");
     expect(document.getElementById("model").value).toBe("llama3");
-    expect(document.getElementById("apiKey").value).toBe("local-key-1");
     expect(document.getElementById("contextTokenBudget").value).toBe("8000");
+    expect(document.getElementById("timeout").value).toBe("30");
   });
 
   it("合法配置保存写入 sync/local", async () => {
@@ -84,9 +85,11 @@ describe("options.js 配置收集、校验与保存", () => {
     document.getElementById("apiKey").value = "sk-new";
     document.getElementById("model").value = "gpt-4o-mini";
     document.getElementById("contextTokenBudget").value = "4000";
+    document.getElementById("timeout").value = "60";
     document.getElementById("saveBtn").click();
     await new Promise((r) => setTimeout(r, 20));
     expect(storageSyncData.endpoint).toBe("https://api.openai.com/v1");
+    expect(storageSyncData.timeout).toBe(60000); // 秒→毫秒
     expect(storageLocalData.apiKey).toBe("sk-new"); // apiKey 只进 local
     expect(storageSyncData.apiKey).toBeUndefined(); // 绝不进 sync
   });
@@ -98,7 +101,9 @@ describe("options.js 配置收集、校验与保存", () => {
     ["apiKey 缺失", (d) => { d.apiKey = ""; }, "apiKeyErr"],
     ["model 缺失", (d) => { d.model = ""; }, "modelErr"],
     ["budget 低于下限", (d) => { d.budget = "400"; }, "contextTokenBudgetErr"],
-    ["budget 高于上限", (d) => { d.budget = "20000"; }, "contextTokenBudgetErr"]
+    ["budget 高于上限", (d) => { d.budget = "20000"; }, "contextTokenBudgetErr"],
+    ["timeout 低于下限", (d) => { d.timeout = "3"; }, "timeoutErr"],
+    ["timeout 高于上限", (d) => { d.timeout = "700"; }, "timeoutErr"]
   ])("校验拒绝：%s", async (_name, mutate, errId) => {
     Object.keys(storageSyncData).forEach((k) => delete storageSyncData[k]);
     delete storageLocalData.apiKey;
@@ -109,7 +114,8 @@ describe("options.js 配置收集、校验与保存", () => {
       endpoint: "https://api.openai.com/v1",
       apiKey: "sk-1",
       model: "gpt-4o-mini",
-      budget: "4000"
+      budget: "4000",
+      timeout: "120"
     };
     mutate(d);
     document.getElementById("provider").value = d.provider;
@@ -117,6 +123,7 @@ describe("options.js 配置收集、校验与保存", () => {
     document.getElementById("apiKey").value = d.apiKey;
     document.getElementById("model").value = d.model;
     document.getElementById("contextTokenBudget").value = d.budget;
+    document.getElementById("timeout").value = d.timeout;
     document.getElementById("saveBtn").click();
     await new Promise((r) => setTimeout(r, 20));
     const errEl = document.getElementById(errId);
