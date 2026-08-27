@@ -75,6 +75,7 @@ jobs:
 
       # 清理私钥，确保不泄露
       - name: 清理私钥
+        if: always()
         run: rm -f private.pem
 
       # 7. 从 CHANGELOG.md 提取当前版本的变更记录作为 release body
