@@ -134,6 +134,7 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== "readpilot-stream") return;
 
   let aborted = false;
+  const abortController = new AbortController();
 
   port.onMessage.addListener(async (msg) => {
     if (msg.type === "START_STREAM") {
@@ -160,7 +161,8 @@ chrome.runtime.onConnect.addListener((port) => {
           {
             onChunk: (text) => {
               if (!aborted) port.postMessage({ chunk: text });
-            }
+            },
+            signal: abortController.signal
           }
         );
 
@@ -179,18 +181,20 @@ chrome.runtime.onConnect.addListener((port) => {
           port.postMessage({ done: true, explanation: result.content });
         }
       } catch (err) {
-        if (!aborted) {
+        if (!aborted && err.type !== "abort") {
           port.postMessage({ error: formatError(err), status: err.status });
         }
       }
       port.disconnect();
     } else if (msg.type === "CANCEL") {
       aborted = true;
+      abortController.abort();
       port.disconnect();
     }
   });
 
   port.onDisconnect.addListener(() => {
     aborted = true;
+    abortController.abort();
   });
 });
