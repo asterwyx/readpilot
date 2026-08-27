@@ -390,10 +390,13 @@ function showError(message, isConfigError = false) {
 
   body.innerHTML = `
     <div class="readpilot-error-content">
-      <p>${message}</p>
+      <p class="readpilot-error-msg"></p>
       <div class="readpilot-error-actions">${actions}</div>
     </div>
   `;
+
+  // message 来自上游（err.message 等），不可信，用 textContent 写入避免 HTML 注入
+  body.querySelector(".readpilot-error-msg").textContent = message;
 
   const settingsBtn = body.querySelector('[data-action="settings"]');
   const retryBtn = body.querySelector('[data-action="retry"]');
