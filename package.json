@@ -1,0 +1,12 @@
+{
+  "name": "readpilot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0",
+    "jsdom": "^25.0.0"
+  }
+}

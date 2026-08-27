@@ -30,10 +30,14 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== "explainSelection" || !tab) return;
 
-  chrome.tabs.sendMessage(tab.id, {
-    type: "EXPLAIN_SELECTION",
-    selection: info.selectionText || ""
-  });
+  chrome.tabs.sendMessage(
+    tab.id,
+    {
+      type: "EXPLAIN_SELECTION",
+      selection: info.selectionText || ""
+    },
+    { frameId: info.frameId ?? 0 }
+  );
 });
 
 // 读取完整配置：sync �非敏感项，local 存 apiKey
