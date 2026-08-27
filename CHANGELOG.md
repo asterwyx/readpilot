@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+### 新增
+
+- （待记录）
+
+## [0.0.1] - 2026-08-27
+
 ### 修复
 
 - 流式取消现在中断底层 fetch 请求（`background.js` 将 `AbortController` 接线至 `callLLM` 的 `signal`），取消后底层连接立即中止，不再继续消耗 token
