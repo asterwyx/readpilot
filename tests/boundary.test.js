@@ -32,7 +32,7 @@ describe("流式取消：signal 接线核查（已修复 AST-7）", () => {
     expect(connectBlock).toMatch(/AbortController/);
     expect(connectBlock).toMatch(/abortCtrl\.abort\(\)/);
     // lib/llm.js 支持 signal
-    const llmSupports = /createTimeoutController\(signal\)/.test(llmSrc.replace(/^export\s+/gm, ""));
+    const llmSupports = /createTimeoutController\(signal/.test(llmSrc.replace(/^export\s+/gm, ""));
     expect(llmSupports).toBe(true);
   });
 });

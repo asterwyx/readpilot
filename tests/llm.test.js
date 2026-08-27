@@ -259,7 +259,7 @@ describe("流式调用（SSE）", () => {
 });
 
 describe("超时", () => {
-  it("请求挂起 30s 后 abort 抛 timeout 错误", async () => {
+  it("非流式请求挂起 120s 后 abort 抛 timeout 错误", async () => {
     vi.useFakeTimers();
     global.fetch.mockImplementation((_url, init) => new Promise((_resolve, reject) => {
       init.signal.addEventListener("abort", () => {
@@ -270,7 +270,109 @@ describe("超时", () => {
     }));
     const p = callLLM(baseConfig, { selection: "x", pageContext: {} });
     const assertion = expect(p).rejects.toMatchObject({ type: "timeout" });
-    await vi.advanceTimersByTimeAsync(30001);
+    // 30s 不应触发，120s 后才超时
+    await vi.advanceTimersByTimeAsync(30000);
+    await expect(Promise.race([p, Promise.resolve("still-pending")])).resolves.toBe("still-pending");
+    await vi.advanceTimersByTimeAsync(90001);
+    await assertion;
+    vi.useRealTimers();
+  });
+
+  // 构造响应式对象：body.getReader() 返回的 reader 在 abort 信号触发时以 AbortError reject
+  // 模拟真实 fetch 响应体被 abort 取消的行为（本地 ReadableStream 不自动响应 fetch signal）
+  function makeStreamResponse(chunks, signal) {
+    const encoder = new TextEncoder();
+    const encoded = chunks.map((c) => encoder.encode(c));
+    let idx = 0;
+    const pending = [];
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        const e = new Error("aborted");
+        e.name = "AbortError";
+        for (const rej of pending) rej(e);
+        pending.length = 0;
+      }, { once: true });
+    }
+    const reader = {
+      read() {
+        if (idx < encoded.length) {
+          return Promise.resolve({ done: false, value: encoded[idx++] });
+        }
+        // 数据耗尽后挂起（模拟流未结束）；若无数据则立即挂起
+        return new Promise((_resolve, reject) => pending.push(reject));
+      },
+      releaseLock() {}
+    };
+    return { status: 200, ok: true, body: { getReader: () => reader }, text: () => Promise.resolve("") };
+  }
+
+  it("流式请求首字节超时：120s 内未收到任何 chunk 则 abort", async () => {
+    vi.useFakeTimers();
+    global.fetch.mockImplementation((_url, init) =>
+      Promise.resolve(makeStreamResponse([], init.signal)));
+    const p = callLLM({ ...baseConfig, streamEnabled: true }, { selection: "x", pageContext: {} }, { onChunk: () => {} });
+    const assertion = expect(p).rejects.toMatchObject({ type: "timeout" });
+    await vi.advanceTimersByTimeAsync(120001);
+    await assertion;
+    vi.useRealTimers();
+  });
+
+  it("流式收到首个 chunk 后清除超时：之后 120s 不再触发整体超时", async () => {
+    vi.useFakeTimers();
+    // 仅首 chunk，之后流挂起（模拟慢速持续流，但已有首字节）
+    global.fetch.mockImplementation((_url, init) =>
+      Promise.resolve(makeStreamResponse(['data: {"choices":[{"delta":{"content":"首"}}]}\n\n'], init.signal)));
+    const chunks = [];
+    const p = callLLM({ ...baseConfig, streamEnabled: true }, { selection: "x", pageContext: {} }, { onChunk: (t) => chunks.push(t) });
+    // 让首字节被读取
+    await vi.advanceTimersByTimeAsync(0);
+    expect(chunks).toEqual(["首"]);
+    // 推进超过 120s —— 不应触发 timeout（超时已在首字节时清除）
+    await vi.advanceTimersByTimeAsync(130000);
+    await expect(Promise.race([p.then(() => "done", () => "rejected"), Promise.resolve("still-pending")])).resolves.toBe("still-pending");
+    // 清理：让流以 abort 结束（无 signal 传入，直接拒绝所有 pending）
+    vi.useRealTimers();
+  });
+
+  it("流式中途用户取消仍生效（AbortController.abort）", async () => {
+    vi.useFakeTimers();
+    global.fetch.mockImplementation((_url, init) =>
+      Promise.resolve(makeStreamResponse(['data: {"choices":[{"delta":{"content":"a"}}]}\n\n'], init.signal)));
+    const userSignal = new AbortController();
+    const p = callLLM({ ...baseConfig, streamEnabled: true }, { selection: "x", pageContext: {} }, { onChunk: () => {}, signal: userSignal.signal });
+    // 读取首字节（超时被清除）
+    await vi.advanceTimersByTimeAsync(0);
+    // 用户取消 —— signal 联动 ctrl.abort()，reader.read() 以 AbortError reject
+    userSignal.abort();
+    await expect(p).rejects.toMatchObject({ type: "aborted" });
+    vi.useRealTimers();
+  });
+
+  it("流式正常完成不触发超时", async () => {
+    vi.useFakeTimers();
+    const sse =
+      'data: {"choices":[{"delta":{"content":"完"}}]}\n\n' +
+      'data: {"choices":[{"delta":{"content":"成"}}]}\n\n' +
+      "data: [DONE]\n\n";
+    global.fetch.mockResolvedValue(sseResponse([sse]));
+    const r = await callLLM({ ...baseConfig, streamEnabled: true }, { selection: "x", pageContext: {} }, { onChunk: () => {} });
+    expect(r.content).toBe("完成");
+    vi.useRealTimers();
+  });
+
+  it("config.timeout 可自定义超时时间（非流式）", async () => {
+    vi.useFakeTimers();
+    global.fetch.mockImplementation((_url, init) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        const e = new Error("aborted");
+        e.name = "AbortError";
+        reject(e);
+      });
+    }));
+    const customConfig = { ...baseConfig, timeout: 5000 };
+    const p = callLLM(customConfig, { selection: "x", pageContext: {} });
+    const assertion = expect(p).rejects.toMatchObject({ type: "timeout" });
+    await vi.advanceTimersByTimeAsync(5001);
     await assertion;
     vi.useRealTimers();
   });
