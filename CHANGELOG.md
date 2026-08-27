@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- 流式取消现在中断底层 fetch 请求（`background.js` 将 `AbortController` 接线至 `callLLM` 的 `signal`），取消后底层连接立即中止，不再继续消耗 token
+- `lib/llm.js` 区分用户主动取消（`type: "aborted"`）与超时（`type: "timeout"`），取消错误不再上报或重试
+
 ### 新增
 
 - GitHub Actions 自动发布工作流（`.github/workflows/release.yml`），推送 `v*` tag 时触发打包与发布

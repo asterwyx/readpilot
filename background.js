@@ -134,6 +134,7 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== "readpilot-stream") return;
 
   let aborted = false;
+  const abortCtrl = new AbortController();
 
   port.onMessage.addListener(async (msg) => {
     if (msg.type === "START_STREAM") {
@@ -160,7 +161,8 @@ chrome.runtime.onConnect.addListener((port) => {
           {
             onChunk: (text) => {
               if (!aborted) port.postMessage({ chunk: text });
-            }
+            },
+            signal: abortCtrl.signal
           }
         );
 
@@ -179,18 +181,21 @@ chrome.runtime.onConnect.addListener((port) => {
           port.postMessage({ done: true, explanation: result.content });
         }
       } catch (err) {
-        if (!aborted) {
+        // 用户主动取消导致的 abort 不上报
+        if (!aborted && err?.type !== "aborted") {
           port.postMessage({ error: formatError(err), status: err.status });
         }
       }
       port.disconnect();
     } else if (msg.type === "CANCEL") {
       aborted = true;
+      abortCtrl.abort();
       port.disconnect();
     }
   });
 
   port.onDisconnect.addListener(() => {
     aborted = true;
+    abortCtrl.abort();
   });
 });
