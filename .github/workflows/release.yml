@@ -1,6 +1,6 @@
 # ReadPilot 发布工作流
 # 触发条件：推送 v* 格式的 tag
-# 流程：检出代码 → 校验版本号一致性 → 打包 ZIP → 提取 CHANGELOG → 创建 Release
+# 流程：检出代码 → 校验版本号一致性 → 打包 CRX → 提取 CHANGELOG → 创建 Release
 name: Release
 
 on:
@@ -44,11 +44,24 @@ jobs:
           fi
           echo "版本号一致：$TAG_VERSION"
 
-      # 5. 打包扩展为 ZIP，只包含扩展运行所需的文件
-      - name: 打包扩展 ZIP
+      # 5. 准备 CRX 签名私钥
+      #    优先使用仓库 secret CRX_PRIVATE_KEY（固定密钥身份）；
+      #    未配置时运行时生成临时密钥（本项目未上架 Web Store，无需固定身份）
+      - name: 准备签名私钥
+        run: |
+          if [ -n "${{ secrets.CRX_PRIVATE_KEY }}" ]; then
+            echo '${{ secrets.CRX_PRIVATE_KEY }}' > private.pem
+            echo "使用 CRX_PRIVATE_KEY secret 中的固定密钥"
+          else
+            openssl genrsa -out private.pem 2048
+            echo "运行时生成临时密钥（每次发布不同）"
+          fi
+
+      # 6. 用 crx3 打包扩展为 CRX，只包含扩展运行所需的文件
+      - name: 打包扩展 CRX
         run: |
           VERSION="${{ steps.tag.outputs.version }}"
-          zip -r "readpilot-v${VERSION}.zip" \
+          npx crx3 -o "readpilot-v${VERSION}.crx" -p private.pem -- \
             manifest.json \
             background.js \
             content.js \
@@ -60,7 +73,11 @@ jobs:
             popup.js \
             icons/
 
-      # 6. 从 CHANGELOG.md 提取当前版本的变更记录作为 release body
+      # 清理私钥，确保不泄露
+      - name: 清理私钥
+        run: rm -f private.pem
+
+      # 7. 从 CHANGELOG.md 提取当前版本的变更记录作为 release body
       - name: 提取 CHANGELOG 版本记录
         id: changelog
         run: |
@@ -78,7 +95,7 @@ jobs:
           echo "$BODY" > /tmp/release_body.md
           echo "body_file=/tmp/release_body.md" >> "$GITHUB_OUTPUT"
 
-      # 7. 创建 GitHub Release，附带 ZIP 作为 asset
+      # 8. 创建 GitHub Release，附带 CRX 作为 asset
       - name: 创建 GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,4 +108,4 @@ jobs:
           gh release create "v${VERSION}" \
             --title "ReadPilot v${VERSION}" \
             --notes-file /tmp/release_body.md \
-            "readpilot-v${VERSION}.zip"
+            "readpilot-v${VERSION}.crx"
