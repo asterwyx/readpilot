@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      max-width: 560px;
+      max-width: 600px;
       margin: 40px auto;
       padding: 0 20px;
       color: #1f2328;
@@ -27,6 +27,9 @@
       font-size: 14px;
       box-sizing: border-box;
     }
+    .field input.err, .field select.err, .field textarea.err {
+      border-color: #cf222e;
+    }
     .field textarea {
       min-height: 80px;
       resize: vertical;
@@ -36,6 +39,42 @@
       font-size: 12px;
       color: #656d76;
       margin-top: 4px;
+    }
+    .field .err-msg {
+      font-size: 12px;
+      color: #cf222e;
+      margin-top: 4px;
+      display: none;
+    }
+    .field .err-msg.show { display: block; }
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .checkbox-field input {
+      width: auto;
+    }
+    .checkbox-field label {
+      margin-bottom: 0;
+    }
+    .security-note {
+      font-size: 12px;
+      color: #656d76;
+      margin-top: 4px;
+      padding: 6px 10px;
+      background: #f6f8fa;
+      border-radius: 6px;
+    }
+    .privacy-note {
+      margin-top: 24px;
+      padding: 12px 14px;
+      background: #dafbe1;
+      border: 1px solid #aceebb;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1a7f37;
+      line-height: 1.6;
     }
     button {
       padding: 8px 18px;
@@ -66,26 +105,31 @@
   <div class="field">
     <label for="provider">LLM 提供商</label>
     <select id="provider">
-      <option value="openai">OpenAI 兼容</option>
+      <option value="openai">OpenAI</option>
+      <option value="ollama">Ollama 本地</option>
       <option value="custom">自定义</option>
     </select>
-    <div class="hint">OpenAI 兼容格式（Chat Completions）适用于 OpenAI、DeepSeek、Moonshot 等。</div>
+    <div class="hint">OpenAI 兼容格式（Chat Completions）适用于 OpenAI、DeepSeek、Moonshot 等。选中预设后自动填充 endpoint 和 model。</div>
   </div>
 
   <div class="field">
     <label for="endpoint">API Endpoint URL</label>
-    <input id="endpoint" type="url" placeholder="https://api.openai.com/v1/chat/completions" />
-    <div class="hint">需完整路径，例如 https://api.openai.com/v1/chat/completions</div>
+    <input id="endpoint" type="url" placeholder="https://api.openai.com/v1" />
+    <div class="hint">填写 base URL（无需 /chat/completions 后缀），例如 https://api.openai.com/v1</div>
+    <div class="err-msg" id="endpointErr"></div>
   </div>
 
   <div class="field">
     <label for="apiKey">API Key</label>
     <input id="apiKey" type="password" placeholder="sk-..." />
+    <div class="security-note">🔒 仅存储在本机，不跨设备同步。</div>
+    <div class="err-msg" id="apiKeyErr"></div>
   </div>
 
   <div class="field">
     <label for="model">模型名称</label>
     <input id="model" type="text" placeholder="gpt-4o-mini" />
+    <div class="err-msg" id="modelErr"></div>
   </div>
 
   <div class="field">
@@ -93,10 +137,26 @@
     <textarea id="systemPrompt" placeholder="留空使用默认 prompt：结合网页上下文解释并补充相关知识"></textarea>
   </div>
 
+  <div class="field checkbox-field">
+    <input id="streamEnabled" type="checkbox" checked />
+    <label for="streamEnabled">启用流式输出（逐字显示，体验更流畅）</label>
+  </div>
+
+  <div class="field">
+    <label for="contextTokenBudget">上下文 Token 预算</label>
+    <input id="contextTokenBudget" type="number" min="500" max="16000" value="4000" step="100" />
+    <div class="hint">上下文总长超限时按优先级裁剪（正文摘要 > 周围文本 > 标题）。范围 500–16000。</div>
+    <div class="err-msg" id="contextTokenBudgetErr"></div>
+  </div>
+
   <button id="saveBtn">保存</button>
   <button id="testBtn">测试连接</button>
 
   <div id="status"></div>
+
+  <div class="privacy-note">
+    <strong>隐私声明：</strong>扩展仅将选中文本和页面上下文发送至你配置的 LLM 端点，不收集其他数据。不内置任何 analytics/telemetry/tracking。除你配置的 LLM endpoint 外无第三方请求。
+  </div>
 
   <script src="options.js" type="module"></script>
 </body>

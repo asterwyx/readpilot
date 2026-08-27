@@ -24,10 +24,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid #eaeef2;
   background: #f6f8fa;
   flex-shrink: 0;
+  cursor: move;
+  user-select: none;
 }
 
 .readpilot-overlay-title {
@@ -36,27 +38,179 @@
   color: #24292f;
 }
 
-.readpilot-overlay-close {
+.readpilot-overlay-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.readpilot-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 12px;
   color: #656d76;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 6px;
   line-height: 1;
+  transition: background 0.15s;
 }
 
-.readpilot-overlay-close:hover {
+.readpilot-btn:hover {
   background: #eaeef2;
   color: #1f2328;
 }
 
+.readpilot-close {
+  font-size: 14px;
+}
+
 .readpilot-overlay-body {
-  padding: 16px;
+  padding: 14px 16px;
   overflow-y: auto;
-  white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
   flex: 1;
+  min-height: 0;
+}
+
+/* 加载状态 */
+.readpilot-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.readpilot-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #eaeef2;
+  border-top-color: #2da44e;
+  border-radius: 50%;
+  animation: readpilot-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes readpilot-spin {
+  to { transform: rotate(360deg); }
+}
+
+.readpilot-loading span {
+  font-size: 14px;
+  color: #656d76;
+}
+
+.readpilot-cancel-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #656d76;
+}
+
+.readpilot-cancel-btn:hover {
+  background: #f6f8fa;
+  color: #1f2328;
+}
+
+/* 流式展示 */
+.readpilot-stream-content {
+  min-height: 40px;
+}
+
+.readpilot-stream-status {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #eaeef2;
+  font-size: 12px;
+  color: #656d76;
+}
+
+.readpilot-stream-status.readpilot-done {
+  color: #1a7f37;
+}
+
+/* 结果展示 */
+.readpilot-result h1 { font-size: 18px; font-weight: 700; margin: 12px 0 6px; }
+.readpilot-result h2 { font-size: 16px; font-weight: 700; margin: 10px 0 5px; }
+.readpilot-result h3 { font-size: 14px; font-weight: 600; margin: 8px 0 4px; }
+.readpilot-result p { margin: 6px 0; }
+.readpilot-result ul, .readpilot-result ol { margin: 6px 0; padding-left: 20px; }
+.readpilot-result li { margin: 3px 0; }
+.readpilot-result code {
+  background: #eff1f3;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+}
+.readpilot-result pre {
+  background: #f6f8fa;
+  border: 1px solid #eaeef2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.readpilot-result pre code {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.readpilot-result a {
+  color: #0969da;
+  text-decoration: none;
+}
+.readpilot-result a:hover {
+  text-decoration: underline;
+}
+.readpilot-result strong { font-weight: 700; }
+.readpilot-result em { font-style: italic; }
+
+/* 错误状态 */
+.readpilot-overlay.readpilot-error {
+  border-color: #ff9e9e;
+}
+
+.readpilot-error-content p {
+  color: #cf222e;
+  font-size: 14px;
+  margin: 0 0 10px 0;
+}
+
+.readpilot-error-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.readpilot-action-btn {
+  padding: 5px 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  color: #24292f;
+}
+
+.readpilot-action-btn:hover {
+  background: #f6f8fa;
+}
+
+/* 缩放手柄 */
+.readpilot-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #d0d7de 50%);
+  border-bottom-right-radius: 12px;
+  flex-shrink: 0;
 }

@@ -6,45 +6,100 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      width: 340px;
+      width: 360px;
+      max-height: 500px;
       margin: 0;
       padding: 16px;
       color: #1f2328;
+      overflow-y: auto;
     }
     h1 { font-size: 16px; margin: 0 0 12px 0; }
-    .section { margin-bottom: 14px; }
-    .label { font-size: 12px; color: #656d76; margin-bottom: 4px; }
-    .content {
+    .history-list { margin-bottom: 14px; }
+    .history-item {
+      padding: 10px;
+      border: 1px solid #eaeef2;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .history-item:hover {
+      background: #f6f8fa;
+    }
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .history-selection {
       font-size: 13px;
-      line-height: 1.6;
+      font-weight: 600;
+      color: #24292f;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      margin-right: 8px;
+    }
+    .history-time {
+      font-size: 11px;
+      color: #656d76;
+      flex-shrink: 0;
+    }
+    .history-explanation {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #656d76;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease;
+    }
+    .history-item.expanded .history-explanation {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #eaeef2;
       white-space: pre-wrap;
       word-break: break-word;
-      max-height: 240px;
-      overflow-y: auto;
-      padding: 10px;
-      background: #f6f8fa;
-      border-radius: 8px;
     }
-    .empty { color: #656d76; font-style: italic; }
+    .history-meta {
+      font-size: 11px;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    .empty { color: #656d76; font-style: italic; font-size: 13px; }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
     a { color: #0969da; text-decoration: none; font-size: 13px; }
     a:hover { text-decoration: underline; }
+    #clearBtn {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #656d76;
+    }
+    #clearBtn:hover { background: #eaeef2; color: #1f2328; }
   </style>
 </head>
 <body>
-  <h1>ReadPilot 最近解释</h1>
+  <h1>ReadPilot 历史记录</h1>
 
-  <div class="section">
-    <div class="label">选中文本</div>
-    <div class="content" id="selectionText"><span class="empty">暂无</span></div>
+  <div id="historyList" class="history-list">
+    <span class="empty">暂无历史记录</span>
   </div>
 
-  <div class="section">
-    <div class="label">解释结果</div>
-    <div class="content" id="explanationText"><span class="empty">暂无</span></div>
-  </div>
-
-  <div class="section">
+  <div class="toolbar">
     <a href="#" id="settingsLink">设置 →</a>
+    <button id="clearBtn">清空历史</button>
   </div>
 
   <script src="popup.js"></script>
