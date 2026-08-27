@@ -16,18 +16,20 @@
 
 ## 安装
 
-### 方式一：开发者模式加载（源码）
+### 方式一：从 Release 安装 CRX（推荐）
+
+1. 前往 [GitHub Releases](https://github.com/asterwyx/readpilot/releases) 下载最新版本 `.crx` 文件
+2. 打开 `chrome://extensions`
+3. 将下载的 `.crx` 文件拖入扩展页面
+
+> ⚠️ 自签名 CRX 可能被 Chrome 拦截。若拖入失败，请使用方式二加载已解压扩展。
+
+### 方式二：开发者模式加载（源码）
 
 1. 下载源码并解压
 2. 打开 `chrome://extensions`
 3. 右上角开启「开发者模式」
 4. 点击「加载已解压的扩展程序」，选择项目根目录
-
-### 方式二：从 Release 下载
-
-1. 前往 [GitHub Releases](https://github.com/asterwyx/readpilot/releases) 下载最新版本 ZIP
-2. 解压
-3. 同方式一，在 `chrome://extensions` 加载已解压目录
 
 ## 配置
 
