@@ -88,7 +88,17 @@ function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-// 按 token 预算裁剪上下文
+// 裁剪文本至 token 预算内（迭代收敛，保证 estimateTokens(结果) ≤ budget）
+function trimToTokens(text, tokenBudget) {
+  if (tokenBudget <= 0 || !text) return "";
+  let chars = Math.min(text.length, tokenBudget * 4);
+  while (chars > 0 && estimateTokens(text.slice(0, chars)) > tokenBudget) {
+    chars--;
+  }
+  return text.slice(0, chars);
+}
+
+// 按 token 预算裁剪上下文（裁剪优先级：正文摘要 > 周围文本 > 标题）
 function trimByTokenBudget(ctx, budget) {
   const titleTokens = estimateTokens(ctx.title);
   const surroundingTokens = estimateTokens(ctx.surroundingText);
@@ -97,24 +107,34 @@ function trimByTokenBudget(ctx, budget) {
 
   if (total <= budget) return ctx;
 
-  // 按优先级裁剪：正文摘要 > 周围文本 > 标题
   let result = { ...ctx };
-  let remaining = budget - titleTokens;
+  let remaining = budget;
 
-  // 先裁剪正文摘要
-  if (surroundingTokens + Math.min(summaryTokens, remaining) <= remaining) {
-    // 周围文本能全保留，裁剪摘要
-    const summaryBudget = remaining - surroundingTokens;
-    if (summaryBudget > 0) {
-      result.pageSummary = result.pageSummary.slice(0, summaryBudget * 4);
-    } else {
-      result.pageSummary = "";
-    }
+  // 标题优先级最高，仅在极小预算下才裁剪
+  if (titleTokens > remaining) {
+    result.title = trimToTokens(result.title, remaining);
+    remaining -= estimateTokens(result.title);
   } else {
-    // 都裁剪
-    const half = Math.floor(remaining / 2);
-    result.surroundingText = result.surroundingText.slice(0, half * 4);
-    result.pageSummary = result.pageSummary.slice(0, (remaining - half) * 4);
+    remaining -= titleTokens;
+  }
+
+  if (remaining <= 0) {
+    result.surroundingText = "";
+    result.pageSummary = "";
+    return result;
+  }
+
+  // 周围文本能全保留时，余量给摘要
+  if (surroundingTokens <= remaining) {
+    result.pageSummary = trimToTokens(result.pageSummary, remaining - surroundingTokens);
+  } else {
+    // 都需裁剪：优先保周围文本（至多 75% 预算），余量给摘要
+    const surroundingBudget = Math.floor(remaining * 0.75);
+    result.surroundingText = trimToTokens(result.surroundingText, surroundingBudget);
+    result.pageSummary = trimToTokens(
+      result.pageSummary,
+      remaining - estimateTokens(result.surroundingText)
+    );
   }
 
   return result;
