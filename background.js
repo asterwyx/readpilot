@@ -1,12 +1,14 @@
 // ReadPilot background service worker
 import { callLLM, formatError, PROVIDER_PRESETS } from "./lib/llm.js";
 
-// 安装时创建右键菜单
+// 安装时创建右键菜单（先清空旧菜单，避免更新后重复 id 报错）
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "explainSelection",
-    title: "用 ReadPilot 解释",
-    contexts: ["selection"]
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "explainSelection",
+      title: "用 ReadPilot 解释",
+      contexts: ["selection"]
+    });
   });
 
   // 迁移逻辑：首次升级时检查 storage.sync.apiKey → 迁移至 storage.local
@@ -36,11 +38,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       type: "EXPLAIN_SELECTION",
       selection: info.selectionText || ""
     },
-    { frameId: info.frameId ?? 0 }
+    { frameId: info.frameId ?? 0 },
+    () => void chrome.runtime.lastError
   );
 });
 
-// 读取完整配置：sync �非敏感项，local 存 apiKey
+// 读取完整配置：sync 存非敏感项，local 存 apiKey
 async function getConfig() {
   const syncConfig = await chrome.storage.sync.get([
     "provider",
@@ -48,7 +51,8 @@ async function getConfig() {
     "model",
     "systemPrompt",
     "streamEnabled",
-    "contextTokenBudget"
+    "contextTokenBudget",
+    "timeout"
   ]);
   const localConfig = await chrome.storage.local.get(["apiKey"]);
   return {
@@ -58,7 +62,8 @@ async function getConfig() {
     model: syncConfig.model || "",
     systemPrompt: syncConfig.systemPrompt || "",
     streamEnabled: syncConfig.streamEnabled !== false,
-    contextTokenBudget: syncConfig.contextTokenBudget || 4000
+    contextTokenBudget: syncConfig.contextTokenBudget || 4000,
+    timeout: syncConfig.timeout || 120000
   };
 }
 

@@ -11,19 +11,21 @@ const els = {
   systemPrompt: document.getElementById("systemPrompt"),
   streamEnabled: document.getElementById("streamEnabled"),
   contextTokenBudget: document.getElementById("contextTokenBudget"),
+  timeout: document.getElementById("timeout"),
   saveBtn: document.getElementById("saveBtn"),
   testBtn: document.getElementById("testBtn"),
   status: document.getElementById("status"),
   endpointErr: document.getElementById("endpointErr"),
   apiKeyErr: document.getElementById("apiKeyErr"),
   modelErr: document.getElementById("modelErr"),
-  contextTokenBudgetErr: document.getElementById("contextTokenBudgetErr")
+  contextTokenBudgetErr: document.getElementById("contextTokenBudgetErr"),
+  timeoutErr: document.getElementById("timeoutErr")
 };
 
 // 读取已存配置并填充表单
 async function loadConfig() {
   const syncData = await chrome.storage.sync.get([
-    "provider", "endpoint", "model", "systemPrompt", "streamEnabled", "contextTokenBudget"
+    "provider", "endpoint", "model", "systemPrompt", "streamEnabled", "contextTokenBudget", "timeout"
   ]);
   const localData = await chrome.storage.local.get(["apiKey"]);
 
@@ -34,6 +36,8 @@ async function loadConfig() {
   els.systemPrompt.value = syncData.systemPrompt || "";
   els.streamEnabled.checked = syncData.streamEnabled !== false;
   els.contextTokenBudget.value = syncData.contextTokenBudget || 4000;
+  // storage 存毫秒，表单显示秒
+  els.timeout.value = Math.round((syncData.timeout || 120000) / 1000);
 }
 
 loadConfig();
@@ -67,6 +71,7 @@ els.provider.addEventListener("change", () => {
 
 // 收集表单配置
 function getConfig() {
+  const timeoutSec = parseInt(els.timeout.value, 10) || 120;
   return {
     provider: els.provider.value,
     endpoint: els.endpoint.value.trim(),
@@ -74,7 +79,8 @@ function getConfig() {
     model: els.model.value.trim(),
     systemPrompt: els.systemPrompt.value.trim(),
     streamEnabled: els.streamEnabled.checked,
-    contextTokenBudget: parseInt(els.contextTokenBudget.value, 10) || 4000
+    contextTokenBudget: parseInt(els.contextTokenBudget.value, 10) || 4000,
+    timeout: timeoutSec * 1000
   };
 }
 
@@ -93,10 +99,10 @@ function showFieldError(field, message) {
 
 // 清除字段错误
 function clearFieldErrors() {
-  ["endpointErr", "apiKeyErr", "modelErr", "contextTokenBudgetErr"].forEach((id) => {
+  ["endpointErr", "apiKeyErr", "modelErr", "contextTokenBudgetErr", "timeoutErr"].forEach((id) => {
     els[id]?.classList.remove("show");
   });
-  ["endpoint", "apiKey", "model", "contextTokenBudget"].forEach((id) => {
+  ["endpoint", "apiKey", "model", "contextTokenBudget", "timeout"].forEach((id) => {
     els[id]?.classList.remove("err");
   });
 }
@@ -144,6 +150,13 @@ function validateConfig(config) {
     valid = false;
   }
 
+  // timeout：5–600 秒（config.timeout 已转为毫秒）
+  const timeout = config.timeout;
+  if (isNaN(timeout) || timeout < 5000 || timeout > 600000) {
+    showFieldError("timeout", "超时需为 5–600 秒的整数。");
+    valid = false;
+  }
+
   return valid;
 }
 
@@ -167,7 +180,8 @@ els.saveBtn.addEventListener("click", async () => {
     model: config.model,
     systemPrompt: config.systemPrompt,
     streamEnabled: config.streamEnabled,
-    contextTokenBudget: config.contextTokenBudget
+    contextTokenBudget: config.contextTokenBudget,
+    timeout: config.timeout
   });
   await chrome.storage.local.set({ apiKey: config.apiKey });
 
