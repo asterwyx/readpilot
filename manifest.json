@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ReadPilot",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "选中网页文本，右键调用大模型结合网页上下文解释并补充相关知识。",
   "permissions": [
     "contextMenus",
