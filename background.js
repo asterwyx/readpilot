@@ -51,7 +51,7 @@ async function getConfig() {
     "model",
     "systemPrompt",
     "streamEnabled",
-    "contextTokenBudget",
+    "explainLanguage",
     "timeout"
   ]);
   const localConfig = await chrome.storage.local.get(["apiKey"]);
@@ -62,6 +62,7 @@ async function getConfig() {
     model: syncConfig.model || "",
     systemPrompt: syncConfig.systemPrompt || "",
     streamEnabled: syncConfig.streamEnabled !== false,
+    explainLanguage: syncConfig.explainLanguage || "browser",
     contextTokenBudget: syncConfig.contextTokenBudget || 4000,
     timeout: syncConfig.timeout || 120000
   };

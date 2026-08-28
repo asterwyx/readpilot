@@ -10,6 +10,7 @@ const els = {
   model: document.getElementById("model"),
   systemPrompt: document.getElementById("systemPrompt"),
   streamEnabled: document.getElementById("streamEnabled"),
+  explainLanguage: document.getElementById("explainLanguage"),
   contextTokenBudget: document.getElementById("contextTokenBudget"),
   timeout: document.getElementById("timeout"),
   saveBtn: document.getElementById("saveBtn"),
@@ -25,7 +26,7 @@ const els = {
 // 读取已存配置并填充表单
 async function loadConfig() {
   const syncData = await chrome.storage.sync.get([
-    "provider", "endpoint", "model", "systemPrompt", "streamEnabled", "contextTokenBudget", "timeout"
+    "provider", "endpoint", "model", "systemPrompt", "streamEnabled", "explainLanguage", "contextTokenBudget", "timeout"
   ]);
   const localData = await chrome.storage.local.get(["apiKey"]);
 
@@ -35,6 +36,7 @@ async function loadConfig() {
   els.model.value = syncData.model || "";
   els.systemPrompt.value = syncData.systemPrompt || "";
   els.streamEnabled.checked = syncData.streamEnabled !== false;
+  els.explainLanguage.value = syncData.explainLanguage || "browser";
   els.contextTokenBudget.value = syncData.contextTokenBudget || 4000;
   // storage 存毫秒，表单显示秒
   els.timeout.value = Math.round((syncData.timeout || 120000) / 1000);
@@ -79,6 +81,7 @@ function getConfig() {
     model: els.model.value.trim(),
     systemPrompt: els.systemPrompt.value.trim(),
     streamEnabled: els.streamEnabled.checked,
+    explainLanguage: els.explainLanguage.value,
     contextTokenBudget: parseInt(els.contextTokenBudget.value, 10) || 4000,
     timeout: timeoutSec * 1000
   };
@@ -180,6 +183,7 @@ els.saveBtn.addEventListener("click", async () => {
     model: config.model,
     systemPrompt: config.systemPrompt,
     streamEnabled: config.streamEnabled,
+    explainLanguage: config.explainLanguage,
     contextTokenBudget: config.contextTokenBudget,
     timeout: config.timeout
   });

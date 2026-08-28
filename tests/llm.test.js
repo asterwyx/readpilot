@@ -98,14 +98,37 @@ describe("请求组装", () => {
     expect(body.messages[0].content).not.toContain("阅读辅助助手");
   });
 
-  it("systemPrompt 为空使用默认 prompt（含背景知识与语言一致性约束）", async () => {
+  it("systemPrompt 为空使用默认 prompt（含背景知识与语言硬约束）", async () => {
     global.fetch.mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
     await callLLM(baseConfig, { selection: "x", pageContext: {} });
     const body = JSON.parse(global.fetch.mock.calls[0][1].body);
     expect(body.messages[0].content).toContain("阅读辅助助手");
     expect(body.messages[0].content).toContain("背景知识");
-    expect(body.messages[0].content).toContain("语言必须与选中文本");
     expect(body.messages[0].content).toContain("不得随模型波动");
+  });
+
+  it("explainLanguage=zh 时 system message 含「必须使用中文」", async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+    await callLLM({ ...baseConfig, explainLanguage: "zh" }, { selection: "x", pageContext: {} });
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.messages[0].content).toContain("必须使用中文");
+    expect(body.messages[0].content).not.toContain("必须使用英文");
+  });
+
+  it("explainLanguage=en 时 system message 含「必须使用英文」", async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+    await callLLM({ ...baseConfig, explainLanguage: "en" }, { selection: "x", pageContext: {} });
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    expect(body.messages[0].content).toContain("必须使用英文");
+    expect(body.messages[0].content).not.toContain("必须使用中文");
+  });
+
+  it("explainLanguage=browser 按 navigator.language 解析（en-US→英文）", async () => {
+    global.fetch.mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+    await callLLM({ ...baseConfig, explainLanguage: "browser" }, { selection: "x", pageContext: {} });
+    const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+    // Node 测试环境 navigator.language 为 en-US → 英文
+    expect(body.messages[0].content).toContain("必须使用英文");
   });
 
   it("上下文全空时不输出上下文段落", async () => {
