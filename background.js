@@ -52,6 +52,7 @@ async function getConfig() {
     "systemPrompt",
     "streamEnabled",
     "explainLanguage",
+    "contextTokenBudget",
     "timeout"
   ]);
   const localConfig = await chrome.storage.local.get(["apiKey"]);
